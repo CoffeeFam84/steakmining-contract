@@ -13,16 +13,16 @@ contract Steakhouse is Ownable {
     bool private initialized = false;
     address payable private recAdd;
     mapping (address => uint256) private hatcheryMiners;
-    mapping (address => uint256) private claimedEggs;
+    mapping (address => uint256) private claimedSteak;
     mapping (address => uint256) private lastHatch;
     mapping (address => address) private referrals;
-    uint256 private marketEggs;
+    uint256 private marketSteak;
     
     constructor() {
         recAdd = payable(msg.sender);
     }
     
-    function hatchEggs(address ref) public {
+    function reGrill(address ref) public {
         require(initialized);
         
         if(ref == msg.sender) {
@@ -33,61 +33,61 @@ contract Steakhouse is Ownable {
             referrals[msg.sender] = ref;
         }
         
-        uint256 eggsUsed = getMyEggs(msg.sender);
+        uint256 eggsUsed = getMySteak(msg.sender);
         uint256 newMiners = eggsUsed / EGGS_TO_HATCH_1MINERS;
         hatcheryMiners[msg.sender] = hatcheryMiners[msg.sender] + newMiners;
-        claimedEggs[msg.sender] = 0;
+        claimedSteak[msg.sender] = 0;
         lastHatch[msg.sender] = block.timestamp;
         
         //send referral eggs
-        claimedEggs[referrals[msg.sender]] = claimedEggs[referrals[msg.sender]] + eggsUsed/8;
+        claimedSteak[referrals[msg.sender]] = claimedSteak[referrals[msg.sender]] + eggsUsed/8;
         
         //boost market to nerf miners hoarding
-        marketEggs=marketEggs + eggsUsed / 5;
+        marketSteak=marketSteak + eggsUsed / 5;
     }
     
-    function sellEggs() public {
+    function eatSteak() public {
         require(initialized);
-        uint256 hasEggs = getMyEggs(msg.sender);
-        uint256 eggValue = calculateEggSell(hasEggs);
+        uint256 hasEggs = getMySteak(msg.sender);
+        uint256 eggValue = calculateSteakSell(hasEggs);
         uint256 fee = devFee(eggValue);
-        claimedEggs[msg.sender] = 0;
+        claimedSteak[msg.sender] = 0;
         lastHatch[msg.sender] = block.timestamp;
-        marketEggs = marketEggs + hasEggs;
+        marketSteak = marketSteak + hasEggs;
         recAdd.transfer(fee);
         payable (msg.sender).transfer(eggValue - fee);
     }
     
     function beanRewards(address adr) public view returns(uint256) {
-        uint256 hasEggs = getMyEggs(adr);
-        uint256 eggValue = calculateEggSell(hasEggs);
+        uint256 hasEggs = getMySteak(adr);
+        uint256 eggValue = calculateSteakSell(hasEggs);
         return eggValue;
     }
     
-    function buyEggs(address ref) public payable {
+    function grillSteak(address ref) public payable {
         require(initialized);
-        uint256 eggsBought = calculateEggBuy(msg.value, address(this).balance - msg.value);
+        uint256 eggsBought = calculateSteakBuy(msg.value, address(this).balance - msg.value);
         eggsBought = eggsBought - devFee(eggsBought);
         uint256 fee = devFee(msg.value);
         recAdd.transfer(fee);
-        claimedEggs[msg.sender] = claimedEggs[msg.sender] + eggsBought;
-        hatchEggs(ref);
+        claimedSteak[msg.sender] = claimedSteak[msg.sender] + eggsBought;
+        reGrill(ref);
     }
     
     function calculateTrade(uint256 rt,uint256 rs, uint256 bs) private view returns(uint256) {
         return (PSN * bs) / (PSNH + (((PSN*rs) + (PSNH*rt)) / rt));
     }
     
-    function calculateEggSell(uint256 eggs) public view returns(uint256) {
-        return calculateTrade(eggs,marketEggs,address(this).balance);
+    function calculateSteakSell(uint256 eggs) public view returns(uint256) {
+        return calculateTrade(eggs,marketSteak,address(this).balance);
     }
     
-    function calculateEggBuy(uint256 eth,uint256 contractBalance) public view returns(uint256) {
-        return calculateTrade(eth,contractBalance,marketEggs);
+    function calculateSteakBuy(uint256 eth,uint256 contractBalance) public view returns(uint256) {
+        return calculateTrade(eth,contractBalance,marketSteak);
     }
     
-    function calculateEggBuySimple(uint256 eth) public view returns(uint256) {
-        return calculateEggBuy(eth,address(this).balance);
+    function calculateSteakBuySimple(uint256 eth) public view returns(uint256) {
+        return calculateSteakBuy(eth,address(this).balance);
     }
     
     function devFee(uint256 amount) private view returns(uint256) {
@@ -95,9 +95,9 @@ contract Steakhouse is Ownable {
     }
     
     function seedMarket() public payable onlyOwner {
-        require(marketEggs == 0);
+        require(marketSteak == 0);
         initialized = true;
-        marketEggs = 108000000000;
+        marketSteak = 108000000000;
     }
     
     function getBalance() public view returns(uint256) {
@@ -108,11 +108,11 @@ contract Steakhouse is Ownable {
         return hatcheryMiners[adr];
     }
     
-    function getMyEggs(address adr) public view returns(uint256) {
-        return claimedEggs[adr] + getEggsSinceLastHatch(adr);
+    function getMySteak(address adr) public view returns(uint256) {
+        return claimedSteak[adr] + getSteakSinceLastHatch(adr);
     }
     
-    function getEggsSinceLastHatch(address adr) public view returns(uint256) {
+    function getSteakSinceLastHatch(address adr) public view returns(uint256) {
         uint256 secondsPassed=min(EGGS_TO_HATCH_1MINERS, block.timestamp - lastHatch[adr]);
         return secondsPassed * hatcheryMiners[adr];
     }
