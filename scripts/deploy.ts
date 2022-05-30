@@ -14,12 +14,24 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const Steakhouse = await ethers.getContractFactory("Steakhouse");
-  const steak = await Steakhouse.deploy();
+  const MockERC20 = await ethers.getContractFactory("MockERC20");
+  const usdcMock = await MockERC20.deploy();
+  await usdcMock.deployed();
+  const USDCSteakhouse = await ethers.getContractFactory("USDCSteakhouse");
+  const usdcSteak = await USDCSteakhouse.deploy(usdcMock.address, '0xdDCB518ac5a11F92243AdA209951fcd6e0B18705');
 
-  await steak.deployed();
+  await usdcSteak.deployed();
+  await usdcSteak.seedMarket(0);
+  await usdcMock.mint('0xBBC6232725EAf504c53A09cFf63b1186BCAc6316', '100000000000000000000000000');
 
-  console.log("Steakhouse deployed to:", steak.address);
+  const SVNSteakhouse = await ethers.getContractFactory("SVNSteakhouse");
+  const svnSteak = await SVNSteakhouse.deploy(usdcMock.address);
+
+  await svnSteak.deployed();
+  await svnSteak.seedMarket(0);
+
+  console.log("USDC deployed to:", usdcMock.address);
+  console.log("USDCSteakhouse deployed to:", usdcSteak.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

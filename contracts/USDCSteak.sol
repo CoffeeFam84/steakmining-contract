@@ -18,7 +18,7 @@ contract USDCSteakhouse is Ownable {
         uint256 tokenType;
     }
 
-    uint256 private EGGS_TO_HATCH_1MINERS = 1080000;//for final version should be seconds in a day
+    uint256 private STEAK_TO_HATCH_1cheffs = 1080000;
     uint256 private PSN = 10000;
     uint256 private PSNH = 5000;
     uint256 private devFeeVal = 2;
@@ -26,9 +26,9 @@ contract USDCSteakhouse is Ownable {
     bool private initialized = false;
     address payable private devWallet;
     address payable private marketWallet = payable(0xcBd3E8B401F659C4037074cF2946f359de1c12e4);
-    mapping (address => uint256) private hatcheryMiners;
+    mapping (address => uint256) private GrillingCheffs;
     mapping (address => uint256) private claimedSteak;
-    mapping (address => uint256) private lastHatch;
+    mapping (address => uint256) private lastGrill;
     mapping (address => address) private referrals;
     uint256 private marketSteak;
     IERC20 private miningToken = IERC20(0xc21223249CA28397B4B6541dfFaEcC539BfF0c59);
@@ -36,6 +36,8 @@ contract USDCSteakhouse is Ownable {
     uint256 public WITHDRAW_COOLDOWN = 6 days;
     DISCOUNT_INFO[] private discountTokens;
     mapping(address => uint256) discountTokenIndex;
+    uint256 private chefCount;
+
         
     constructor(address _token, address _market) {
         devWallet = payable(msg.sender);
@@ -54,52 +56,55 @@ contract USDCSteakhouse is Ownable {
             referrals[msg.sender] = ref;
         }
         
-        uint256 eggsUsed = getMySteak(msg.sender);
-        uint256 newMiners = eggsUsed / EGGS_TO_HATCH_1MINERS;
-        hatcheryMiners[msg.sender] = hatcheryMiners[msg.sender] + newMiners;
+        uint256 MeatGrilled = getMySteak(msg.sender);
+        uint256 newCheffs = MeatGrilled / STEAK_TO_HATCH_1cheffs;
+        GrillingCheffs[msg.sender] = GrillingCheffs[msg.sender] + newCheffs;
         claimedSteak[msg.sender] = 0;
-        lastHatch[msg.sender] = block.timestamp;
+        lastGrill[msg.sender] = block.timestamp;
         
-        //send referral eggs
-        claimedSteak[referrals[msg.sender]] = claimedSteak[referrals[msg.sender]] + eggsUsed/20;
+        //send referral 
+        claimedSteak[referrals[msg.sender]] = claimedSteak[referrals[msg.sender]] + MeatGrilled/20;
         
-        //boost market to nerf miners hoarding
-        marketSteak=marketSteak + eggsUsed / 5;
+        //boost market to nerf MasterChefs 
+        marketSteak=marketSteak + MeatGrilled / 5;
     }
     
     function eatSteak() public {
         require(initialized);
-        require(lastSell[msg.sender] + WITHDRAW_COOLDOWN <= block.timestamp, "You can't withdraw for a while")
-        uint256 hasEggs = getMySteak(msg.sender);
-        uint256 eggValue = calculateSteakSell(hasEggs);
-        uint256 fee = devFee(eggValue);
-        uint256 mfee = marketingFee(eggValue);
+        require(lastSell[msg.sender] + WITHDRAW_COOLDOWN <= block.timestamp, "You can't withdraw yet");
+        uint256 hasMeat = getMySteak(msg.sender);
+        uint256 meatValue = calculateSteakSell(hasMeat);
+        uint256 fee = devFee(meatValue);
+        uint256 mfee = marketingFee(meatValue);
         claimedSteak[msg.sender] = 0;
-        lastHatch[msg.sender] = block.timestamp;
-        marketSteak = marketSteak + hasEggs;
+        lastGrill[msg.sender] = block.timestamp;
+        marketSteak = marketSteak + hasMeat;
         miningToken.transfer(devWallet, fee);
         miningToken.transfer(marketWallet, mfee);
-        miningToken.transfer(msg.sender, eggValue-fee-mfee);
+        miningToken.transfer(msg.sender, meatValue-fee-mfee);
         lastSell[msg.sender] = block.timestamp;
     }
     
-    function beanRewards(address adr) public view returns(uint256) {
-        uint256 hasEggs = getMySteak(adr);
-        uint256 eggValue = calculateSteakSell(hasEggs);
-        return eggValue;
+    function steakRewards(address adr) public view returns(uint256) {
+        uint256 hasMeat = getMySteak(adr);
+        uint256 meatValue = calculateSteakSell(hasMeat);
+        return meatValue;
     }
     
     function grillSteak(address ref, uint256 amount) public {
         require(initialized);
         uint256 contractBalance = miningToken.balanceOf(address(this));
         miningToken.transferFrom(msg.sender, address(this), amount);
-        uint256 eggsBought = calculateSteakBuy(amount, contractBalance);
-        eggsBought = eggsBought - devFee(eggsBought) - marketingFee(eggsBought);
+        uint256 meatBought = calculateSteakBuy(amount, contractBalance);
+        meatBought = meatBought - devFee(meatBought) - marketingFee(meatBought);
         uint256 fee = devFee(amount);
         uint256 mfee = marketingFee(amount);
         miningToken.transfer(devWallet, fee);
         miningToken.transfer(marketWallet, mfee);
-        claimedSteak[msg.sender] = claimedSteak[msg.sender] + eggsBought;
+        claimedSteak[msg.sender] = claimedSteak[msg.sender] + meatBought;
+        if (GrillingCheffs[msg.sender] == 0) {
+            chefCount += 1;
+        }
         reGrill(ref);
         lastSell[msg.sender] = block.timestamp;
     }
@@ -108,8 +113,8 @@ contract USDCSteakhouse is Ownable {
         return (PSN * bs) / (PSNH + (((PSN*rs) + (PSNH*rt)) / rt));
     }
     
-    function calculateSteakSell(uint256 eggs) public view returns(uint256) {
-        return calculateTrade(eggs,marketSteak,miningToken.balanceOf(address(this)));
+    function calculateSteakSell(uint256 meats) public view returns(uint256) {
+        return calculateTrade(meats,marketSteak,miningToken.balanceOf(address(this)));
     }
     
     function calculateSteakBuy(uint256 eth,uint256 contractBalance) public view returns(uint256) {
@@ -156,17 +161,17 @@ contract USDCSteakhouse is Ownable {
         return miningToken.balanceOf(address(this));
     }
     
-    function getMyMiners(address adr) public view returns(uint256) {
-        return hatcheryMiners[adr];
+    function getMyChefs(address adr) public view returns(uint256) {
+        return GrillingCheffs[adr];
     }
     
     function getMySteak(address adr) public view returns(uint256) {
-        return claimedSteak[adr] + getSteakSinceLastHatch(adr);
+        return claimedSteak[adr] + getSteakSinceLastGrill(adr);
     }
     
-    function getSteakSinceLastHatch(address adr) public view returns(uint256) {
-        uint256 secondsPassed=min(EGGS_TO_HATCH_1MINERS, block.timestamp - lastHatch[adr]);
-        return secondsPassed * hatcheryMiners[adr];
+    function getSteakSinceLastGrill(address adr) public view returns(uint256) {
+        uint256 secondsPassed=min(STEAK_TO_HATCH_1cheffs, block.timestamp - lastGrill[adr]);
+        return secondsPassed * GrillingCheffs[adr];
     }
     
     function min(uint256 a, uint256 b) private pure returns (uint256) {
@@ -191,5 +196,9 @@ contract USDCSteakhouse is Ownable {
         discountTokens[tokenIndex] = discountTokens[lastIndex];
         discountTokens.pop();
         delete discountTokenIndex[_address];
+    }
+
+    function getInvestorCount() external view returns (uint256) {
+        return chefCount;
     }
 }
