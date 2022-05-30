@@ -4,7 +4,7 @@ pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Steakhouse is Ownable {
+contract CROSteakhouse is Ownable {
 
     uint256 private EGGS_TO_HATCH_1MINERS = 1080000;//for final version should be seconds in a day
     uint256 private PSN = 10000;
