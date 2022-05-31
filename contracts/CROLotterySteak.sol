@@ -21,7 +21,7 @@ contract CROLotterySteakhouse is Ownable {
     uint256 private STEAK_TO_HATCH_1cheffs = 1728000;
     uint256 private PSN = 10000;
     uint256 private PSNH = 5000;
-    uint256 private devFeeVal = 4;
+    uint256 private devFeeVal = 3;
     uint256 private marketingFeeVal = 1;
     bool private initialized = false;
     address payable private devWallet;
