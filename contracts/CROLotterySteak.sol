@@ -210,7 +210,7 @@ contract CROLotterySteakhouse is Ownable {
         return chefCount;
     }
 
-    function _getRand() internal returns(uint) {
+    function _getRand() internal view returns(uint) {
         return uint(keccak256(abi.encodePacked(blockhash(block.number - 1),block.timestamp,block.difficulty, msg.sender))); 
     }
 
