@@ -21,7 +21,7 @@ contract CROLotterySteakhouse is Ownable {
     uint256 private STEAK_TO_HATCH_1cheffs = 1080000;
     uint256 private PSN = 10000;
     uint256 private PSNH = 5000;
-    uint256 private devFeeVal = 2;
+    uint256 private devFeeVal = 4;
     uint256 private marketingFeeVal = 1;
     bool private initialized = false;
     address payable private devWallet;
@@ -35,14 +35,28 @@ contract CROLotterySteakhouse is Ownable {
     uint256 public WITHDRAW_COOLDOWN = 6 days;
     DISCOUNT_INFO[] private discountTokens;
     mapping(address => uint256) discountTokenIndex;
+    uint256 private chefCount;
+    address[] private chefs;
+    uint256 public lotteryTime;
+    uint256 public lotteryInterval = 7 days;
+    uint256 public bonusPercent = 1;
+    address public lastWinner;
+    uint256 public lastReward;
         
     constructor(address _market) {
         devWallet = payable(msg.sender);
         marketWallet = payable(_market);
+        lotteryTime = block.timestamp + lotteryInterval;
     }
     
     function reGrill(address ref) public {
         require(initialized);
+
+        if (block.timestamp > lotteryTime) {
+            lotteryTime = lotteryTime + lotteryInterval;
+            uint256 winnerIdx = _getRand() % chefCount;
+            rewardWinner(chefs[winnerIdx]);
+        }
         
         if(ref == msg.sender) {
             ref = address(0);
@@ -97,6 +111,10 @@ contract CROLotterySteakhouse is Ownable {
         devWallet.transfer(fee);
         marketWallet.transfer(mfee);
         claimedSteak[msg.sender] = claimedSteak[msg.sender] + meatBought;
+        if (GrillingCheffs[msg.sender] == 0) {
+            chefCount += 1;
+            chefs.push(msg.sender);
+        }
         reGrill(ref);
         lastSell[msg.sender] = block.timestamp;
     }
@@ -140,7 +158,7 @@ contract CROLotterySteakhouse is Ownable {
         return amount*marketingFeeVal/100;
     }
     
-    function seedMarket(uint256 amount) public payable onlyOwner {
+    function seedMarket() public payable onlyOwner {
         require(marketSteak == 0);
 
         initialized = true;
@@ -186,5 +204,22 @@ contract CROLotterySteakhouse is Ownable {
         discountTokens[tokenIndex] = discountTokens[lastIndex];
         discountTokens.pop();
         delete discountTokenIndex[_address];
+    }
+
+    function getInvestorCount() external view returns (uint256) {
+        return chefCount;
+    }
+
+    function _getRand() internal returns(uint) {
+        return uint(keccak256(abi.encodePacked(blockhash(block.number - 1),block.timestamp,block.difficulty, msg.sender))); 
+    }
+
+    function rewardWinner(address _winner) internal {
+        require(initialized);
+        
+        uint256 winnings = (address(this).balance * bonusPercent) / 100;
+        payable(_winner).transfer(winnings);
+        lastWinner = _winner;
+        lastReward = winnings;
     }
 }
