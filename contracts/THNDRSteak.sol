@@ -9,7 +9,7 @@ interface ITOKEN {
     function balanceOf(address) external view returns (uint256);
 }
 
-contract SVNSteakhouse is Ownable {
+contract THNDRSteakhouse is Ownable {
 
     struct DISCOUNT_INFO {
         address tokenAddress;
@@ -22,16 +22,14 @@ contract SVNSteakhouse is Ownable {
     uint256 private PSN = 10000;
     uint256 private PSNH = 5000;
     uint256 private devFeeVal = 2;
-    uint256 private burnFeeVal = 2;
     bool private initialized = false;
     address payable private devWallet;
-    address payable private burnWallet = payable(0x000000000000000000000000000000000000dEaD);
     mapping (address => uint256) private GrillingCheffs;
     mapping (address => uint256) private claimedSteak;
     mapping (address => uint256) private lastGrill;
     mapping (address => address) private referrals;
     uint256 private marketSteak;
-    IERC20 private miningToken = IERC20(0x654bAc3eC77d6dB497892478f854cF6e8245DcA9);
+    IERC20 private miningToken = IERC20(0xE71D72436F290Cd98CC29c9EF0E15C88Ce57B359);
     mapping(address => uint256) private lastSell;
     uint256 public WITHDRAW_COOLDOWN = 6 days;
     DISCOUNT_INFO[] private discountTokens;
@@ -61,7 +59,7 @@ contract SVNSteakhouse is Ownable {
         lastGrill[msg.sender] = block.timestamp;
         
         //send referral 
-        claimedSteak[referrals[msg.sender]] = claimedSteak[referrals[msg.sender]] + MeatGrilled/12;
+        claimedSteak[referrals[msg.sender]] = claimedSteak[referrals[msg.sender]] + MeatGrilled/10;
         
         //boost market 
         marketSteak=marketSteak + MeatGrilled / 5;
@@ -73,12 +71,10 @@ contract SVNSteakhouse is Ownable {
         uint256 hasMeat = getMySteak(msg.sender);
         uint256 meatValue = calculateSteakSell(hasMeat);
         uint256 fee = devFee(meatValue);
-        uint256 bfee = burnFee(meatValue);
         claimedSteak[msg.sender] = 0;
         lastGrill[msg.sender] = block.timestamp;
         marketSteak = marketSteak + hasMeat;
         miningToken.transfer(devWallet, fee);
-        miningToken.transfer(burnWallet, bfee);
         miningToken.transfer(msg.sender, meatValue-fee);
         lastSell[msg.sender] = block.timestamp;
     }
@@ -94,11 +90,9 @@ contract SVNSteakhouse is Ownable {
         uint256 contractBalance = miningToken.balanceOf(address(this));
         miningToken.transferFrom(msg.sender, address(this), amount);
         uint256 meatBought = calculateSteakBuy(amount, contractBalance);
-        meatBought = meatBought - devFee(meatBought) - burnFee(meatBought);
+        meatBought = meatBought - devFee(meatBought);
         uint256 fee = devFee(amount);
-        uint256 bfee = burnFee(amount);
         miningToken.transfer(devWallet, fee);
-        miningToken.transfer(burnWallet, bfee);
         claimedSteak[msg.sender] = claimedSteak[msg.sender] + meatBought;
         if (GrillingCheffs[msg.sender] == 0) {
             chefCount += 1;
@@ -140,10 +134,6 @@ contract SVNSteakhouse is Ownable {
             }
         }
         return discountFee;
-    }
-
-    function burnFee(uint256 amount) private view returns(uint256) {
-        return amount*burnFeeVal/100;
     }
     
     function seedMarket(uint256 amount) public onlyOwner {
