@@ -23,7 +23,16 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 // Go to https://hardhat.org/config/ to learn more
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.13",
+  solidity: {
+    compilers: [
+      {
+      version: "0.8.13"
+      },
+      {
+      version: "0.8.15"
+      },
+    ]
+  },
   networks: {
     cronos : {
       url : "https://gateway.nebkas.ro/",
@@ -43,8 +52,26 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
-  },
+    apiKey: 'WENA4RX2UHAI5HHMRK1XF3BDV89KZFYSHC',
+    customChains: [
+      {
+        network: "cronos",
+        chainId: 25,
+        urls: {
+          apiURL: "https://api.cronoscan.com/api",
+          browserURL: "https://cronoscan.com/"
+        }
+      },
+      {
+        network: "cronos_testnet",
+        chainId: 338,
+        urls: {
+          apiURL: "https://api-testnet.cronoscan.com/api",
+          browserURL: "https://testnet.cronoscan.com/"
+        }
+      }
+    ]
+  }
 };
 
 export default config;
