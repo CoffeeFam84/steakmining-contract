@@ -9,18 +9,20 @@ contract SteakDAO is ERC721Enumerable, Ownable {
 
     string baseURI;
     string public baseExtension = ".json";
-    uint256 public cost = 2 ether;
-    uint256 public Wlcost = 1 ether;
+    uint256 public cost = 499 ether;
+    uint256 public Wlcost = 399 ether;
     uint256 constant public maxSupply = 200;
     uint256 public maxMintAmount = 5;
     mapping(address => uint256) public mintPerWallet;
     bool public paused = false;
     mapping(address => bool) public whitelisted;
     
-    address public daoWallet = 0x7A0b8D56DDBAa1B4b2B51B634714348897108792;
+    address public daoWallet = 0x09C31F2aF32566d805c4090C4DB1AdA0bbF6F2ad;
+    address public marketingWallet = 0xcBd3E8B401F659C4037074cF2946f359de1c12e4;
 
     constructor(string memory _initBaseURI) ERC721("La Brigade De Cuisine", "LBDC") {
         setBaseURI(_initBaseURI);
+        _mintForTeam();
     }
 
     // internal
@@ -45,7 +47,9 @@ contract SteakDAO is ERC721Enumerable, Ownable {
             _safeMint(msg.sender, supply+i);
         }
         mintPerWallet[msg.sender] += amount;
-  
+        
+        uint256 mFee = address(this).balance * 10 / 100;
+        payable(marketingWallet).transfer(mFee);
         payable(daoWallet).transfer(address(this).balance);
     }
 
@@ -135,5 +139,11 @@ contract SteakDAO is ERC721Enumerable, Ownable {
     {
         if (whitelisted[_minter]) return Wlcost;
         return cost;
+    }
+
+    function _mintForTeam() private {
+        for (uint i = 1; i <= 20; i++) {
+            _safeMint(daoWallet, i);
+        }
     }
 }
